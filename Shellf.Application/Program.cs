@@ -3,8 +3,6 @@ namespace Shellf.Application;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Net.Http.Json;
-using System.Security.Principal;
 using System.Text.Json;
 using System.Windows.Forms;
 using Microsoft.Win32;
@@ -20,15 +18,15 @@ static class Program
         Application.EnableVisualStyles();
         Application.SetCompatibleTextRenderingDefault(false);
         CreateSettingsFileIfNotExists();
-        var commands = GetCommands();
 
         var notifyIcon = new NotifyIcon
         {
-            Icon = new Icon("icon.ico"),
+            Icon = new Icon("Assets/icon.ico"),
             Visible = true,
             Text = "Shellf"
         };
 
+        var commands = GetCommands();
         foreach (var commandGroup in commands)
         {
             var groupMenu = new ToolStripMenuItem(commandGroup.Name);
@@ -36,10 +34,12 @@ static class Program
 
             foreach (var commandItem in commandGroup.Items)
             {
-                groupMenu.DropDownItems.Add(commandItem.Name, null, (s, e) =>
+                var item = new ToolStripMenuItem(commandItem.Name);
+                item.Click += (s, e) =>
                 {
-                    StartProcess(commandItem);
-                });
+                    StartProcess(commandItem, item);
+                };
+                groupMenu.DropDownItems.Add(item);
             }
         }
 
@@ -82,27 +82,23 @@ static class Program
         Application.Run();
     }
 
-    private static void StartProcess(CommandItem command)
+    private static void StartProcess(CommandItem command, ToolStripMenuItem item)
     {
-        if (!processes.ContainsKey(command.Name) || processes[command.Name].HasExited)
+        var commandKey = $"{command.Name}:{command.WorkingDirectory}:{command.StartCommand}";
+        if (!processes.ContainsKey(commandKey) || processes[commandKey].HasExited)
         {
             var startInfo = new ProcessStartInfo
             {
                 FileName = command.Exe,
-                Arguments = $"-c {command.StartCommand}", // TODO: Or StartCommand
+                Arguments = $"-c {command.StartCommand}", // TODO: Or StopCommand
                 WorkingDirectory = command.WorkingDirectory,
                 UseShellExecute = false,
                 CreateNoWindow = true // TODO: Provide the option?
             };
             Process process = Process.Start(startInfo);
-            processes[command.Name] = process;
+            processes[commandKey] = process;
 
-            var item = contextMenu.Items.OfType<ToolStripMenuItem>().FirstOrDefault(i => i.Text == "Run npm start");
-            if (item != null)
-            {
-                item.Checked = true;
-            }
-
+            item.Checked = true;
         }
         else
         {
