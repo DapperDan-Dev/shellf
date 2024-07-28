@@ -1,0 +1,17 @@
+{
+    "version": "1.0.0",
+    "commands": [
+        {
+            "name": "",
+            "items": [
+                {
+                    "name": "Example Command",
+                    "exe": "pwsh.exe",
+                    "startCommand": "",
+                    "stopCommand": null,
+                    "workingDirectory": null
+                }
+            ]
+        }
+    ]
+}
