@@ -74,7 +74,7 @@ static class Program
         contextMenu.Items.Add("Quit Shellf", null, (s, e) =>
         {
             notifyIcon.Visible = false;
-            KillProcess("npm start");
+            KillAllProcesses();
             Application.Exit();
         });
 
@@ -102,15 +102,16 @@ static class Program
         }
         else
         {
-            MessageBox.Show($"{command} process is already running.");
+            KillProcess(commandKey);
+            item.Checked = false;
         }
     }
 
-    private static void KillProcess(string command)
+    private static void KillProcess(string key)
     {
-        if (processes.ContainsKey(command) && !processes[command].HasExited)
+        if (processes.ContainsKey(key) && !processes[key].HasExited)
         {
-            int pid = processes[command].Id;
+            int pid = processes[key].Id;
             ProcessStartInfo killInfo = new ProcessStartInfo
             {
                 FileName = "taskkill",
@@ -119,12 +120,20 @@ static class Program
                 CreateNoWindow = true
             };
             Process.Start(killInfo);
-            processes[command].WaitForExit(); // Wait for the process to exit
-            processes.Remove(command);
+            processes[key].WaitForExit(); // Wait for the process to exit
+            processes.Remove(key);
         }
         else
         {
-            MessageBox.Show($"{command} process is not running.");
+            MessageBox.Show($"Process is not running."); // TODO: Refactor / Might not need
+        }
+    }
+
+    private static void KillAllProcesses()
+    {
+        foreach (var process in processes)
+        {
+            KillProcess(process.Key);
         }
     }
 
