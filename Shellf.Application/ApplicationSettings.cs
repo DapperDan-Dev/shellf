@@ -1,16 +1,6 @@
 namespace Shellf.Application;
 
 using System.Collections.Generic;
-
-/**
-** TODOs
-** - Kill all processes on exit
-** - Checkmark/track running by id or by name
-** - Stop if running / Start if stopped
-** - Option to track process
-** - Dividers in groups
-*/
-
 using System.Text.Json.Serialization;
 
 public class ApplicationSettings
