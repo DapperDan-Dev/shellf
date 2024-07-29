@@ -8,7 +8,6 @@ TODO
 
 TODO
 - [ ] GitHub Templates
-  - [ ] Issues
   - [ ] Pull Requests
 - [ ] CI/CD
   - [ ] Date Ver
