@@ -15,71 +15,79 @@ static class Program
     [STAThread]
     static void Main()
     {
-        Application.EnableVisualStyles();
-        Application.SetCompatibleTextRenderingDefault(false);
-        CreateSettingsFileIfNotExists();
-
-        var notifyIcon = new NotifyIcon
+        try
         {
-            Icon = new Icon("Assets/icon.ico"),
-            Visible = true,
-            Text = "Shellf"
-        };
+            Application.EnableVisualStyles();
+            Application.SetCompatibleTextRenderingDefault(false);
+            CreateSettingsFileIfNotExists();
+            var executableDirectory = AppDomain.CurrentDomain.BaseDirectory;
 
-        var commands = GetCommands();
-        foreach (var commandGroup in commands)
-        {
-            var groupMenu = new ToolStripMenuItem(commandGroup.Name);
-            contextMenu.Items.Add(groupMenu);
-
-            foreach (var commandItem in commandGroup.Items)
+            var notifyIcon = new NotifyIcon
             {
-                var item = new ToolStripMenuItem(commandItem.Name);
-                item.Click += (s, e) =>
+                Icon = new Icon(Path.Combine(executableDirectory, "Assets", "icon.ico")),
+                Visible = true,
+                Text = "Shellf"
+            };
+
+            var commands = GetCommands();
+            foreach (var commandGroup in commands)
+            {
+                var groupMenu = new ToolStripMenuItem(commandGroup.Name);
+                contextMenu.Items.Add(groupMenu);
+
+                foreach (var commandItem in commandGroup.Items)
                 {
-                    StartProcess(commandItem, item);
-                };
-                groupMenu.DropDownItems.Add(item);
+                    var item = new ToolStripMenuItem(commandItem.Name);
+                    item.Click += (s, e) =>
+                    {
+                        StartProcess(commandItem, item);
+                    };
+                    groupMenu.DropDownItems.Add(item);
+                }
             }
+
+            contextMenu.Items.Add(new ToolStripSeparator());
+            contextMenu.Items.Add("Open Settings File", null, (s, e) =>
+            {
+                var settingsFilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Shellf", "settings.json");
+                try
+                {
+                    // Check if .json files have a default application associated
+                    var jsonAssociation = Registry.ClassesRoot.OpenSubKey(".json");
+                    var processStartInfo = new ProcessStartInfo(settingsFilePath) { UseShellExecute = true };
+
+                    if (jsonAssociation != null)
+                    {
+                        Process.Start(processStartInfo);
+                    }
+                    else
+                    {
+                        // If no association, open with Notepad
+                        processStartInfo.FileName = "notepad.exe";
+                        processStartInfo.Arguments = settingsFilePath;
+                        Process.Start(processStartInfo);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show(ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            });
+            contextMenu.Items.Add(new ToolStripSeparator());
+            contextMenu.Items.Add("Quit Shellf", null, (s, e) =>
+            {
+                notifyIcon.Visible = false;
+                KillAllProcesses();
+                Application.Exit();
+            });
+
+            notifyIcon.ContextMenuStrip = contextMenu;
+            Application.Run();
         }
-
-        contextMenu.Items.Add(new ToolStripSeparator());
-        contextMenu.Items.Add("Open Settings File", null, (s, e) =>
+        catch (Exception ex)
         {
-            var settingsFilePath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Shellf", "settings.json");
-            try
-            {
-                // Check if .json files have a default application associated
-                var jsonAssociation = Registry.ClassesRoot.OpenSubKey(".json");
-                var processStartInfo = new ProcessStartInfo(settingsFilePath) { UseShellExecute = true };
-
-                if (jsonAssociation != null)
-                {
-                    Process.Start(processStartInfo);
-                }
-                else
-                {
-                    // If no association, open with Notepad
-                    processStartInfo.FileName = "notepad.exe";
-                    processStartInfo.Arguments = settingsFilePath;
-                    Process.Start(processStartInfo);
-                }
-            }
-            catch (Exception ex)
-            {
-                MessageBox.Show(ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
-            }
-        });
-        contextMenu.Items.Add(new ToolStripSeparator());
-        contextMenu.Items.Add("Quit Shellf", null, (s, e) =>
-        {
-            notifyIcon.Visible = false;
-            KillAllProcesses();
-            Application.Exit();
-        });
-
-        notifyIcon.ContextMenuStrip = contextMenu;
-        Application.Run();
+            MessageBox.Show(ex.Message, "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+        }
     }
 
     private static void StartProcess(CommandItem command, ToolStripMenuItem item)
@@ -141,7 +149,9 @@ static class Program
     {
         var appDataPath = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "Shellf");
         var settingFilePath = Path.Combine(appDataPath, "settings.json");
-        var settingsFileTemplate = File.ReadAllText("settings.template.json");
+        var executableDirectory = AppDomain.CurrentDomain.BaseDirectory;
+        var settingsFilePath = Path.Combine(executableDirectory, "settings.template.json");
+        var settingsFileTemplate = File.ReadAllText(settingsFilePath);
 
         if (!Directory.Exists(appDataPath))
         {
